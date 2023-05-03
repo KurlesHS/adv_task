@@ -36,15 +36,15 @@ jobs:
         sudo mv migrate.linux-amd64 /usr/bin/migrate
         which migrate
 
-    - name: Install postgres client
-      run: sudo apt-get install -y postgresql-client
+    #- name: Install postgres client
+    #  run: sudo apt-get install -y postgresql-client
 
     - name: Verify dependencies
       run: go mod verify
 
-    - name: create db
-      run: |
-        export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make create_db
+    #- name: create db
+    #  run: |
+    #    export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make create_db
 
     - name: make migration
       run: |
@@ -54,6 +54,6 @@ jobs:
       run: |
         export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make migrate_down
 
-    - name: drop db
-      run: |
-        export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make drop_db
+    #- name: drop db
+    #  run: |
+    #    export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make drop_db
