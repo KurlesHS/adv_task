@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/cmd/main.go",
             "env": {
                 "DB_USER": "postgres",
-                "DB_PASSWORD": "postgrespass",
+                "DB_PASS": "postgrespass",
                 "DB_HOST": "localhost",
                 "DB_PORT": "5433",
                 "DB_NAME": "adv_task"

@@ -1,0 +1,9 @@
+{
+    "go.testEnvVars": {
+        "DB_USER": "postgres",
+        "DB_PASS": "postgrespass",
+        "DB_HOST": "localhost",
+        "DB_PORT": "5433",
+        "DB_NAME": "adv_task_test"
+    }
+}

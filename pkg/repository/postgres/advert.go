@@ -37,6 +37,7 @@ func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var record model.Advert
 		var title, link sql.NullString
@@ -58,6 +59,7 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 	if rows.Next() {
 		var title, description, link sql.NullString
 		err = rows.Scan(&title, &description, &adv.Price)
@@ -71,10 +73,12 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 		if err != nil {
 			return
 		}
+
 		for rows.Next() {
 			rows.Scan(&link)
 			adv.Photos = append(adv.Photos, link.String)
 		}
+		rows.Close()
 	}
 	return
 }
