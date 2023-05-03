@@ -39,6 +39,9 @@ jobs:
     #- name: Install postgres client
     #  run: sudo apt-get install -y postgresql-client
 
+    - name: Make paths
+      run: mkdir bin
+
     - name: Verify dependencies
       run: go mod verify
 
@@ -46,13 +49,16 @@ jobs:
     #  run: |
     #    export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make create_db
 
-    - name: make migration
+    - name: Make migration
       run: |
         export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make migrate_up
 
-    - name: rollback migration
+    - name: Rollback migration
       run: |
         export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make migrate_down
+
+    - name: Build service
+      run: go -v -o bin/adv_task ./cmd
 
     #- name: drop db
     #  run: |
