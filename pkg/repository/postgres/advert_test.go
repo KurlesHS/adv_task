@@ -6,6 +6,7 @@ import (
 	"kurles/adv_task/configs"
 	"kurles/adv_task/pkg/model"
 	"math/rand"
+	"reflect"
 	"testing"
 )
 
@@ -26,7 +27,9 @@ func TestAdvertRepo(t *testing.T) {
 	ctx := context.Background()
 	for i := 0; i < 100; i++ {
 		adv := model.DetailedAdvert{
-			Title: fmt.Sprintf("Title %v", i+1),
+			Title:       fmt.Sprintf("Title %v", i+1),
+			Description: fmt.Sprintf("Description %v", i+1),
+			Price:       rand.Float64() * 1000,
 		}
 
 		pCnt := rand.Intn(10) + 1
@@ -51,7 +54,19 @@ func TestAdvertRepo(t *testing.T) {
 			return
 		}
 		if rAdv.Description != adv.Description {
-			t.Error(err)
+			t.Error("Descriptions isn't equal")
+			return
+		}
+		if rAdv.Title != adv.Title {
+			t.Error("Titles isn't equal")
+			return
+		}
+		if rAdv.Price != adv.Price {
+			t.Error("Prices isn't equal")
+			return
+		}
+		if !reflect.DeepEqual(rAdv.Photos, adv.Photos) {
+			t.Error("Photos isn't equal")
 			return
 		}
 	}
