@@ -53,16 +53,15 @@ jobs:
       run: |
         export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make migrate_up
 
-    - name: Rollback migration
-      run: |
-        export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make migrate_down
-
     - name: Build service
       run: go build -v -o bin/adv_task ./cmd
 
     - name: Run tests
       run: export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && go test ./...
 
+    - name: Rollback migration
+      run: |
+        export DB_PASS=localPassword && export DB_USER=localUser && export DB_NAME=test && export DB_HOST=localhost && export DB_PORT=5432 && make migrate_down
 
     #- name: drop db
     #  run: |
