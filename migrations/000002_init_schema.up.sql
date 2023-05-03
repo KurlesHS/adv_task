@@ -27,9 +27,3 @@ create table photos
     photo_order serial,
     link        varchar
 );
-
-alter table adverts
-    owner to postgres;
-
-alter table photos
-    owner to postgres;
