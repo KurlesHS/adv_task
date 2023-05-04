@@ -25,7 +25,7 @@ func New(host string, port int, dbName string, user string, pass string) (repo P
 	return
 }
 
-func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model.SortBy, desc bool) (res []model.Advert, err error) {
+func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model.SortBy, sortOrder model.SortOrder) (res []model.Advert, err error) {
 	if page < 1 {
 		err = fmt.Errorf("wrong page: %v", page)
 		return
@@ -39,7 +39,7 @@ func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model
 	}
 
 	sortOrderV := ""
-	if desc {
+	if sortOrder == model.Desc {
 		sortOrderV = "desc"
 	}
 

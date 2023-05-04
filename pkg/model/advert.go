@@ -1,10 +1,16 @@
 package model
 
 type SortBy int
+type SortOrder int
 
 const (
 	Price SortBy = iota
 	Date
+)
+
+const (
+	Asc SortOrder = iota
+	Desc
 )
 
 type DetailedAdvert struct {

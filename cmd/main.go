@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 	"kurles/adv_task/configs"
-	"kurles/adv_task/pkg/model"
-	"kurles/adv_task/pkg/repository/postgres"
+	"kurles/adv_task/pkg/handler"
 	"os"
 )
 
@@ -21,42 +20,11 @@ func main() {
 		return
 	}
 
-	repo, err := postgres.New(conf.DBHost, conf.DBPort, conf.DBName, conf.DBUserName, conf.DBPassword)
-	_ = repo
-	fmt.Printf("%v\n", conf)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening database connection: %v", err)
-	}
-
 	ctx := context.Background()
-	res, err := repo.GetAdverts(ctx, 1, model.Date, true)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error selecting adverts: %v", err)
-	}
-	_ = res
 
-	a, err := repo.GetAdvert(ctx, 1)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error selecting advert 1: %v", err)
-	}
-	_ = a
+	h := handler.New(conf.ServicePort)
+	err = h.Start()
+	_ = err
+	_ = ctx
 
-	a, err = repo.GetAdvert(ctx, 2)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error selecting advert 2: %v", err)
-	}
-	_ = a
-
-	da := model.DetailedAdvert{
-		Title:       "inserted adv",
-		Description: "inserted adv descr",
-		Price:       1000,
-		Photos:      []string{"link1", "link2"},
-	}
-	advId, err := repo.InsertAdvert(ctx, da)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error inserting advert: %v", err)
-	}
-	_ = advId
 }

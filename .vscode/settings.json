@@ -4,7 +4,8 @@
         "DB_PASS": "postgrespass",
         "DB_HOST": "localhost",
         "DB_PORT": "5433",
-        "DB_NAME": "adv_task_test"
+        "DB_NAME": "adv_task_test",
+        "SERVICE_PORT": "9000"
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
 }

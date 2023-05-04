@@ -80,9 +80,9 @@ func TestAdvertRepo(t *testing.T) {
 
 	// Тестирование постраничного выбора
 
-	checkPage := func(advs []model.DetailedAdvert, sortBy model.SortBy, desc bool) error {
+	checkPage := func(advs []model.DetailedAdvert, sortBy model.SortBy, sortOrder model.SortOrder) error {
 		for i := 0; i < int(advCnt); i += 10 {
-			res, err := repo.GetAdverts(ctx, i/10+1, sortBy, desc)
+			res, err := repo.GetAdverts(ctx, i/10+1, sortBy, sortOrder)
 			if err != nil {
 				return err
 			}
@@ -114,7 +114,7 @@ func TestAdvertRepo(t *testing.T) {
 		return advs[i].Id < advs[j].Id
 	})
 
-	err = checkPage(advs, model.Date, false)
+	err = checkPage(advs, model.Date, model.Asc)
 	if err != nil {
 		t.Error(err)
 		return
@@ -125,7 +125,7 @@ func TestAdvertRepo(t *testing.T) {
 		return advs[i].Id > advs[j].Id
 	})
 
-	err = checkPage(advs, model.Date, true)
+	err = checkPage(advs, model.Date, model.Desc)
 	if err != nil {
 		t.Error(err)
 		return
@@ -136,14 +136,17 @@ func TestAdvertRepo(t *testing.T) {
 		return advs[i].Price < advs[j].Price
 	})
 
-	err = checkPage(advs, model.Price, false)
-
+	err = checkPage(advs, model.Price, model.Asc)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	// сортировка по дате по убыванию
 	sort.Slice(advs, func(i, j int) bool {
 		return advs[i].Price > advs[j].Price
 	})
 
-	err = checkPage(advs, model.Price, true)
+	err = checkPage(advs, model.Price, model.Desc)
 	if err != nil {
 		t.Error(err)
 		return
