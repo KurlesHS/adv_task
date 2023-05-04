@@ -7,6 +7,7 @@ import (
 	"kurles/adv_task/pkg/model"
 	"math/rand"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -21,11 +22,17 @@ func TestAdvertRepo(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	_ = repo
+
+	ctx := context.Background()
+	err = repo.ClearAllAdverts(ctx)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	advs := make([]model.DetailedAdvert, 0)
-	ctx := context.Background()
-	for i := 0; i < 100; i++ {
+	advCnt := 100 + rand.Int31n(50)
+	for i := 0; i < int(advCnt); i++ {
 		adv := model.DetailedAdvert{
 			Title:       fmt.Sprintf("Title %v", i+1),
 			Description: fmt.Sprintf("Description %v", i+1),
@@ -69,5 +76,76 @@ func TestAdvertRepo(t *testing.T) {
 			t.Error("Photos isn't equal")
 			return
 		}
+	}
+
+	// Тестирование постраничного выбора
+
+	checkPage := func(advs []model.DetailedAdvert, sortBy model.SortBy, desc bool) error {
+		for i := 0; i < int(advCnt); i += 10 {
+			res, err := repo.GetAdverts(ctx, i/10+1, sortBy, desc)
+			if err != nil {
+				return err
+			}
+			if len(res) == 0 {
+				return fmt.Errorf("no adv results")
+			}
+			for ai, adv := range res {
+				if i+ai >= int(advCnt) {
+					return fmt.Errorf("too many adv results")
+				}
+				actAdv := advs[i+ai]
+				if adv.Title != actAdv.Title {
+					return fmt.Errorf("wrong adv page result (title) at page %v and #%v", i/10, ai)
+
+				}
+				if adv.Price != actAdv.Price {
+					return fmt.Errorf("wrong adv page result (price) at page %v and #%v", i/10, ai)
+
+				}
+				if adv.MainPhoto != actAdv.Photos[0] {
+					return fmt.Errorf("wrong adv page result (photo) at page %v and #%v", i/10, ai)
+				}
+			}
+		}
+		return nil
+	}
+	// сортировка по дате по возрастанию
+	sort.Slice(advs, func(i, j int) bool {
+		return advs[i].Id < advs[j].Id
+	})
+
+	err = checkPage(advs, model.Date, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// сортировка по дате по убыванию
+	sort.Slice(advs, func(i, j int) bool {
+		return advs[i].Id > advs[j].Id
+	})
+
+	err = checkPage(advs, model.Date, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// сортировка по цене по возрастанию
+	sort.Slice(advs, func(i, j int) bool {
+		return advs[i].Price < advs[j].Price
+	})
+
+	err = checkPage(advs, model.Price, false)
+
+	// сортировка по дате по убыванию
+	sort.Slice(advs, func(i, j int) bool {
+		return advs[i].Price > advs[j].Price
+	})
+
+	err = checkPage(advs, model.Price, true)
+	if err != nil {
+		t.Error(err)
+		return
 	}
 }

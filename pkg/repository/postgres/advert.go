@@ -30,9 +30,22 @@ func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model
 		err = fmt.Errorf("wrong page: %v", page)
 		return
 	}
+
+	var sortByV string
+	if sortBy == model.Date {
+		sortByV = "create_timestamp"
+	} else {
+		sortByV = "price"
+	}
+
+	sortOrderV := ""
+	if desc {
+		sortOrderV = "desc"
+	}
+
 	q := fmt.Sprintf("select id, title, price, (select link from photos where adv_id = id limit 1) "+
 		"from adverts ad "+
-		"order by create_timestamp asc limit %v offset %v;", pageSize, pageSize*(page-1))
+		"order by %v %v limit %v offset %v;", sortByV, sortOrderV, pageSize, pageSize*(page-1))
 	rows, err := repo.db.QueryContext(ctx, q)
 	if err != nil {
 		return
@@ -75,8 +88,10 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 		}
 
 		for rows.Next() {
-			rows.Scan(&link)
-			adv.Photos = append(adv.Photos, link.String)
+			err = rows.Scan(&link)
+			if err == nil {
+				adv.Photos = append(adv.Photos, link.String)
+			}
 		}
 		rows.Close()
 	}
@@ -92,16 +107,29 @@ func (repo *PgAdvertRepo) InsertAdvert(ctx context.Context, advert model.Detaile
 	row := tx.QueryRowContext(ctx, q, advert.Title, advert.Description, advert.Price, time.Now())
 	err = row.Scan(&id)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return
 	}
 	for _, v := range advert.Photos {
 		_, err = tx.ExecContext(ctx, "insert into photos (adv_id, link) values ($1, $2);", id, v)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return
 		}
 	}
 	err = tx.Commit()
 	return
+}
+
+func (repo *PgAdvertRepo) ClearAllAdverts(ctx context.Context) error {
+	tx, err := repo.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, "delete from adverts;")
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }

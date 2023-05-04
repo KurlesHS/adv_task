@@ -17,11 +17,13 @@ type Config struct {
 func LoadConfig() (config Config, err error) {
 	v := viper.New()
 	v.AutomaticEnv()
-	v.BindEnv("DB_USER")
-	v.BindEnv("DB_PASS")
-	v.BindEnv("DB_HOST")
-	v.BindEnv("DB_PORT")
-	v.BindEnv("DB_NAME")
+	params := []string{"DB_USER", "DB_PASS", "DB_HOST", "DB_PORT", "DB_NAME"}
+	for _, param := range params {
+		err = v.BindEnv(param)
+		if err != nil {
+			return
+		}
+	}
 	err = v.Unmarshal(&config)
 	if err == nil && len(config.DBName) == 0 {
 		err = fmt.Errorf("error reading config")
