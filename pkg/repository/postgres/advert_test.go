@@ -6,29 +6,22 @@ import (
 	"kurles/adv_task/configs"
 	"kurles/adv_task/pkg/model"
 	"math/rand"
-	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestAdvertRepo(t *testing.T) {
 	cfg, err := configs.LoadConfig()
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, err)
+
 	repo, err := New(cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBUserName, cfg.DBPassword)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, err)
 
 	ctx := context.Background()
 	err = repo.ClearAllAdverts(ctx)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, err)
 
 	advs := make([]model.DetailedAdvert, 0)
 	advCnt := 100 + rand.Int31n(50)
@@ -44,10 +37,8 @@ func TestAdvertRepo(t *testing.T) {
 			adv.Photos = append(adv.Photos, fmt.Sprintf("https://photos.com/photo_%v_%v", i+1, p+1))
 		}
 		adv.Id, err = repo.InsertAdvert(ctx, adv)
-		if err != nil {
-			t.Error(err)
-			return
-		}
+		require.Nil(t, err)
+
 		advs = append(advs, adv)
 	}
 
@@ -55,27 +46,15 @@ func TestAdvertRepo(t *testing.T) {
 	for _, adv := range advs {
 		_ = adv
 		rAdv, err := repo.GetAdvert(ctx, adv.Id)
-		if err != nil {
-			fmt.Println(err.Error())
-			t.Error(err)
-			return
-		}
-		if rAdv.Description != adv.Description {
-			t.Error("Descriptions isn't equal")
-			return
-		}
-		if rAdv.Title != adv.Title {
-			t.Error("Titles isn't equal")
-			return
-		}
-		if rAdv.Price != adv.Price {
-			t.Error("Prices isn't equal")
-			return
-		}
-		if !reflect.DeepEqual(rAdv.Photos, adv.Photos) {
-			t.Error("Photos isn't equal")
-			return
-		}
+		require.Nil(t, err)
+
+		require.Equal(t, rAdv.Description, adv.Description, "Descriptions isn't equal")
+
+		require.Equal(t, rAdv.Title, adv.Title, "Titles isn't equal")
+
+		require.Equal(t, rAdv.Price, adv.Price, "Prices isn't equal")
+
+		require.Equal(t, rAdv.Photos, adv.Photos, "Photos isn't equal")
 	}
 
 	// Тестирование постраничного выбора
@@ -83,28 +62,21 @@ func TestAdvertRepo(t *testing.T) {
 	checkPage := func(advs []model.DetailedAdvert, sortBy model.SortBy, sortOrder model.SortOrder) error {
 		for i := 0; i < int(advCnt); i += 10 {
 			res, err := repo.GetAdverts(ctx, i/10+1, sortBy, sortOrder)
-			if err != nil {
-				return err
-			}
-			if len(res) == 0 {
-				return fmt.Errorf("no adv results")
-			}
+
+			require.Nil(t, err)
+
+			require.True(t, len(res) != 0, "no adv results")
+
 			for ai, adv := range res {
-				if i+ai >= int(advCnt) {
-					return fmt.Errorf("too many adv results")
-				}
+				require.False(t, i+ai >= int(advCnt), "too many adv results")
+
 				actAdv := advs[i+ai]
-				if adv.Title != actAdv.Title {
-					return fmt.Errorf("wrong adv page result (title) at page %v and #%v", i/10, ai)
 
-				}
-				if adv.Price != actAdv.Price {
-					return fmt.Errorf("wrong adv page result (price) at page %v and #%v", i/10, ai)
+				require.Equal(t, adv.Title, actAdv.Title, fmt.Sprintf("wrong adv page result (title) at page %v and #%v", i/10, ai))
 
-				}
-				if adv.MainPhoto != actAdv.Photos[0] {
-					return fmt.Errorf("wrong adv page result (photo) at page %v and #%v", i/10, ai)
-				}
+				require.Equal(t, adv.Price, actAdv.Price, fmt.Sprintf("wrong adv page result (price) at page %v and #%v", i/10, ai))
+
+				require.Equal(t, adv.MainPhoto, actAdv.Photos[0], fmt.Sprintf("wrong adv page result (photo) at page %v and #%v", i/10, ai))
 			}
 		}
 		return nil
@@ -114,41 +86,26 @@ func TestAdvertRepo(t *testing.T) {
 		return advs[i].Id < advs[j].Id
 	})
 
-	err = checkPage(advs, model.Date, model.Asc)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, checkPage(advs, model.Date, model.Asc))
 
 	// сортировка по дате по убыванию
 	sort.Slice(advs, func(i, j int) bool {
-		return advs[i].Id > advs[j].Id
+		return advs[i].Id >= advs[j].Id
 	})
 
-	err = checkPage(advs, model.Date, model.Desc)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, checkPage(advs, model.Date, model.Desc))
 
 	// сортировка по цене по возрастанию
 	sort.Slice(advs, func(i, j int) bool {
 		return advs[i].Price < advs[j].Price
 	})
 
-	err = checkPage(advs, model.Price, model.Asc)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, checkPage(advs, model.Price, model.Asc))
+
 	// сортировка по дате по убыванию
 	sort.Slice(advs, func(i, j int) bool {
-		return advs[i].Price > advs[j].Price
+		return advs[i].Price >= advs[j].Price
 	})
 
-	err = checkPage(advs, model.Price, model.Desc)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	require.Nil(t, checkPage(advs, model.Price, model.Desc))
 }
