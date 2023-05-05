@@ -51,6 +51,7 @@ func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model
 		return
 	}
 	defer rows.Close()
+	res = make([]model.Advert, 0)
 	for rows.Next() {
 		var record model.Advert
 		var title, link sql.NullString
@@ -94,6 +95,8 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 			}
 		}
 		rows.Close()
+	} else {
+		err = fmt.Errorf("advert with id %v is not found", advId)
 	}
 	return
 }

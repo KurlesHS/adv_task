@@ -2,9 +2,12 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"kurles/adv_task/pkg/model"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -22,10 +25,10 @@ type Service interface {
 type Handlers struct {
 	e       *echo.Echo
 	port    int
-	service *Service
+	service Service
 }
 
-func New(service *Service, port int) Handlers {
+func New(service Service, port int) Handlers {
 	res := Handlers{
 		e:       echo.New(),
 		port:    port,
@@ -44,16 +47,66 @@ func New(service *Service, port int) Handlers {
 }
 
 func (h Handlers) InsertAdvert(ctx echo.Context) error {
-
-	return nil
+	var adv model.DetailedAdvert
+	err := json.NewDecoder(ctx.Request().Body).Decode(&adv)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+	}
+	id, err := h.service.InsertAdvert(ctx.Request().Context(), adv)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+	}
+	jsonMap := make(map[string]interface{})
+	jsonMap["id"] = id
+	return ctx.JSON(http.StatusOK, &jsonMap)
 }
 
 func (h Handlers) GetAdvert(ctx echo.Context) error {
-	return nil
+
+	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+	}
+	adv, err := h.service.GetAdvert(ctx.Request().Context(), id)
+	// TODO: разделить ответы на:
+	// ошибка БД, запись не найдена, внутренняя ошибка
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+	}
+	if strings.ToLower(ctx.QueryParam("fields")) != "true" {
+		adv.Description = ""
+		adv.Photos = adv.Photos[:1]
+	}
+	return ctx.JSON(http.StatusOK, &adv)
 }
 
 func (h Handlers) GetAdverts(ctx echo.Context) error {
-	return nil
+	pageStr := ctx.QueryParam("page")
+	page := int64(1)
+	if len(pageStr) > 0 {
+		var err error
+		page, err = strconv.ParseInt(pageStr, 10, 31)
+		if err != nil {
+			return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: "page is not number"})
+		}
+	}
+	sortParam := strings.Split(ctx.QueryParam("sort"), "_")
+
+	sortBy := model.Date
+	sortOrder := model.Asc
+	if len(sortParam) > 0 && sortParam[0] == "price" {
+		sortBy = model.Price
+	}
+	if len(sortParam) > 1 && sortParam[1] == "desc" {
+		sortOrder = model.Desc
+	}
+	advs, err := h.service.GetAdverts(ctx.Request().Context(), int(page), sortBy, sortOrder)
+
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, &advs)
 }
 
 func (h *Handlers) Start() error {

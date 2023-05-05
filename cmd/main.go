@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"kurles/adv_task/configs"
 	"kurles/adv_task/pkg/handler"
+	"kurles/adv_task/pkg/repository/postgres"
 	"os"
 )
 
@@ -22,7 +23,12 @@ func main() {
 
 	ctx := context.Background()
 
-	h := handler.New(conf.ServicePort)
+	repo, err := postgres.New(conf.DBHost, conf.DBPort, conf.DBName, conf.DBUserName, conf.DBPassword)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "create repository error: %v\n", err)
+		return
+	}
+	h := handler.New(&repo, conf.ServicePort)
 	err = h.Start()
 	_ = err
 	_ = ctx

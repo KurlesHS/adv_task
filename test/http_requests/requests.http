@@ -1,0 +1,19 @@
+POST http://localhost:9000/api/adverts HTTP/1.1
+Content-Type: : application/json; charset=utf-8
+
+{
+    "title": "New advert",
+    "description": "Description of new advert 4",
+    "photos": ["link14", "link24"],
+    "price": 400012
+}
+
+###
+
+GET  http://localhost:9000/api/adverts?page=1 HTTP/1.1
+
+###
+
+GET  http://localhost:9000/api/adverts/5?fields=true2 HTTP/1.1
+
+##
