@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"kurles/adv_task/pkg/error_message"
 	"kurles/adv_task/pkg/model"
 	"net/http"
 	"strconv"
@@ -48,13 +50,19 @@ func New(service Service, port int) Handlers {
 
 func (h Handlers) InsertAdvert(ctx echo.Context) error {
 	var adv model.DetailedAdvert
+	var errorMess error_message.ErrorMessage
 	err := json.NewDecoder(ctx.Request().Body).Decode(&adv)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
 	}
 	id, err := h.service.InsertAdvert(ctx.Request().Context(), adv)
+
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+		status := echo.ErrInternalServerError.Code
+		if errors.As(err, &errorMess) && errorMess.Type() == error_message.NotFound {
+			status = echo.ErrNotFound.Code
+		}
+		return ctx.JSON(status, &BadRequestResponse{Result: err.Error()})
 	}
 	jsonMap := make(map[string]interface{})
 	jsonMap["id"] = id
@@ -62,16 +70,20 @@ func (h Handlers) InsertAdvert(ctx echo.Context) error {
 }
 
 func (h Handlers) GetAdvert(ctx echo.Context) error {
-
+	var errorMess error_message.ErrorMessage
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+		return ctx.JSON(echo.ErrBadRequest.Code, &BadRequestResponse{Result: err.Error()})
 	}
 	adv, err := h.service.GetAdvert(ctx.Request().Context(), id)
 	// TODO: разделить ответы на:
 	// ошибка БД, запись не найдена, внутренняя ошибка
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
+		status := echo.ErrInternalServerError.Code
+		if errors.As(err, &errorMess) && errorMess.Type() == error_message.NotFound {
+			status = echo.ErrNotFound.Code
+		}
+		return ctx.JSON(status, &BadRequestResponse{Result: err.Error()})
 	}
 	if strings.ToLower(ctx.QueryParam("fields")) != "true" {
 		adv.Description = ""
@@ -81,6 +93,7 @@ func (h Handlers) GetAdvert(ctx echo.Context) error {
 }
 
 func (h Handlers) GetAdverts(ctx echo.Context) error {
+	var errorMess error_message.ErrorMessage
 	pageStr := ctx.QueryParam("page")
 	page := int64(1)
 	if len(pageStr) > 0 {
@@ -103,6 +116,20 @@ func (h Handlers) GetAdverts(ctx echo.Context) error {
 	advs, err := h.service.GetAdverts(ctx.Request().Context(), int(page), sortBy, sortOrder)
 
 	if err != nil {
+		if err != nil {
+			var status int
+			if errors.As(err, &errorMess) {
+				switch errorMess.Type() {
+				case error_message.BadRequest:
+					status = echo.ErrBadRequest.Code
+				case error_message.NotFound:
+					status = echo.ErrNotFound.Code
+				default:
+					status = echo.ErrInternalServerError.Code
+				}
+			}
+			return ctx.JSON(status, &BadRequestResponse{Result: err.Error()})
+		}
 		return ctx.JSON(http.StatusBadRequest, &BadRequestResponse{Result: err.Error()})
 	}
 

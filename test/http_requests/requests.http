@@ -14,6 +14,6 @@ GET  http://localhost:9000/api/adverts?page=1 HTTP/1.1
 
 ###
 
-GET  http://localhost:9000/api/adverts/5?fields=true2 HTTP/1.1
+GET  http://localhost:9000/api/adverts/9?fields=true2 HTTP/1.1
 
 ##

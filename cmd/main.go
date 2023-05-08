@@ -1,11 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"kurles/adv_task/configs"
 	"kurles/adv_task/pkg/handler"
 	"kurles/adv_task/pkg/repository/postgres"
+	"log"
 	"os"
 )
 
@@ -15,13 +15,17 @@ import (
 // set DB_PASS=postgrespass && set DB_USER=postgres && set DB_NAME=test_db && set DB_HOST=localhost && set DB_PORT=5433
 
 func main() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred:", err)
+			os.Exit(1)
+		}
+	}()
 	conf, err := configs.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "read config error: %v\n", err)
 		return
 	}
-
-	ctx := context.Background()
 
 	repo, err := postgres.New(conf.DBHost, conf.DBPort, conf.DBName, conf.DBUserName, conf.DBPassword)
 	if err != nil {
@@ -29,8 +33,5 @@ func main() {
 		return
 	}
 	h := handler.New(&repo, conf.ServicePort)
-	err = h.Start()
-	_ = err
-	_ = ctx
-
+	log.Fatal(h.Start())
 }

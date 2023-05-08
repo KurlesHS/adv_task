@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	errormessage "kurles/adv_task/pkg/error_message"
 	"kurles/adv_task/pkg/model"
 	"time"
 
@@ -22,12 +23,15 @@ const (
 func New(host string, port int, dbName string, user string, pass string) (repo PgAdvertRepo, err error) {
 	conStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, pass, dbName)
 	repo.db, err = sqlx.Open("postgres", conStr)
+	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
+	}
 	return
 }
 
 func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model.SortBy, sortOrder model.SortOrder) (res []model.Advert, err error) {
 	if page < 1 {
-		err = fmt.Errorf("wrong page: %v", page)
+		err = errormessage.NewError(errormessage.BadRequest, fmt.Sprintf("wrong page: %v", page))
 		return
 	}
 
@@ -48,6 +52,7 @@ func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model
 		"order by %v %v limit %v offset %v;", sortByV, sortOrderV, pageSize, pageSize*(page-1))
 	rows, err := repo.db.QueryContext(ctx, q)
 	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
 		return
 	}
 	defer rows.Close()
@@ -56,6 +61,10 @@ func (repo *PgAdvertRepo) GetAdverts(ctx context.Context, page int, sortBy model
 		var record model.Advert
 		var title, link sql.NullString
 		err = rows.Scan(&record.Id, &title, &record.Price, &link)
+		if err != nil {
+			err = errormessage.NewError(errormessage.Internal, err.Error())
+			return
+		}
 		if title.Valid {
 			record.Title = title.String
 		}
@@ -71,6 +80,7 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 	q := "select title, description, price from adverts where id = $1;"
 	rows, err := repo.db.QueryContext(ctx, q, advId)
 	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
 		return
 	}
 	defer rows.Close()
@@ -85,6 +95,7 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 		}
 		rows, err = repo.db.QueryContext(ctx, "select link from photos where adv_id = $1 order by photo_order;", advId)
 		if err != nil {
+			err = errormessage.NewError(errormessage.Db, err.Error())
 			return
 		}
 
@@ -96,7 +107,7 @@ func (repo *PgAdvertRepo) GetAdvert(ctx context.Context, advId int64) (adv model
 		}
 		rows.Close()
 	} else {
-		err = fmt.Errorf("advert with id %v is not found", advId)
+		err = errormessage.NewError(errormessage.NotFound, fmt.Sprintf("advert with id %v is not found", advId))
 	}
 	return
 }
@@ -110,29 +121,40 @@ func (repo *PgAdvertRepo) InsertAdvert(ctx context.Context, advert model.Detaile
 	row := tx.QueryRowContext(ctx, q, advert.Title, advert.Description, advert.Price, time.Now())
 	err = row.Scan(&id)
 	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
 		_ = tx.Rollback()
 		return
 	}
 	for _, v := range advert.Photos {
 		_, err = tx.ExecContext(ctx, "insert into photos (adv_id, link) values ($1, $2);", id, v)
 		if err != nil {
+			err = errormessage.NewError(errormessage.Db, err.Error())
 			_ = tx.Rollback()
 			return
 		}
 	}
 	err = tx.Commit()
+	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
+	}
 	return
 }
 
 func (repo *PgAdvertRepo) ClearAllAdverts(ctx context.Context) error {
 	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
 		return err
 	}
 	_, err = tx.ExecContext(ctx, "delete from adverts;")
 	if err != nil {
 		_ = tx.Rollback()
+		err = errormessage.NewError(errormessage.Db, err.Error())
 		return err
 	}
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		err = errormessage.NewError(errormessage.Db, err.Error())
+	}
+	return err
 }
